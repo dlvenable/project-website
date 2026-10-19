@@ -4,6 +4,7 @@ title: 'Data Prepper 2.17: TODO'
 authors:
   - srikanthpadakanti
   - dvenable
+  - hsotaro
 date: 2026-11-05
 categories:
   - releases
@@ -66,7 +67,22 @@ curl https://data-prepper:8088/services/collector/event \
 
 ## RSS source
 
-## JDBC source coordination
+## JDBC source coordination store
+
+Several Data Prepper sources, including OpenSearch, Amazon S3 scan, and Apache Iceberg, scale beyond a single node only when they can share a source coordination store that assigns work to each node and prevents duplicate processing. Until now, this store has been backed by DynamoDB.
+
+Data Prepper 2.17 adds a new `jdbc` source coordination store backed by a relational database. If you already run PostgreSQL or MySQL, you can now scale Data Prepper to a multi-node cluster using that database, with the backup, monitoring, and access controls you have already set up around it. The new store works with every source that uses source coordination, so moving an existing pipeline from DynamoDB to JDBC is a configuration change alone.
+
+The following configuration points source coordination at a PostgreSQL database:
+
+```yaml
+source_coordination:
+  store:
+    jdbc:
+      url: "jdbc:postgresql://db:5432/dataprepper"
+      username: "dp_user"
+      password: "${{aws_secrets:db-secrets:password}}"
+```
 
 ## gRPC connection age for OpenTelemetry sources
 
