@@ -67,6 +67,41 @@ curl https://data-prepper:8088/services/collector/event \
 
 ## RSS source
 
+This source allows you to ingest any type of RSS or Atom feed, such as news, release announcements, security advisories, and blog posts, into OpenSearch. Earlier versions could read only one feed per source and had two serious bugs: every poll re-emitted the entire feed while memory use grew without bound, and a single transient network error stopped polling permanently.
+
+Data Prepper 2.17 rewrites the `rss` source to fix both bugs and adds support for multiple feeds. Each feed now keeps a bounded cache of recently seen items, so only new items are written to the buffer. Feeds fail independently: a failing feed is logged, increments a per-feed failure metric, and retries with exponential backoff without affecting the other feeds. The new `request_timeout` setting, which defaults to 30 seconds, keeps a slow or unresponsive feed from blocking a worker thread.
+
+You configure feeds in a `feeds` map keyed by feed name. Each feed can override the default `polling_frequency` and can set its own HTTP basic authentication credentials. The `workers` setting controls how many feeds are polled concurrently.
+
+Each item becomes an `rss-item` event with `title`, `link`, `description`, `publication_date`, and `item_id` fields, plus the always-present `feed_name` and `feed_url` fields. The `item_id` field uses the item's GUID, falling back to its link and then to a content hash, so it is always present and works well as an OpenSearch `document_id`. The source redacts the query string from `feed_url` and from log messages so that API keys passed as query parameters are not exposed. When a feed provides channel details such as its title, link, language, or categories, the source attaches them as event metadata.
+
+The following pipeline polls two feeds, one of them using basic authentication, and writes each feed to its own daily index:
+
+```yaml
+rss-pipeline:
+  source:
+    rss:
+      workers: 2
+      polling_frequency: PT5M
+      feeds:
+        opensearch-forum:
+          url: "https://forum.opensearch.org/latest.rss"
+        internal-advisories:
+          url: "https://private.example.com/feed.xml"
+          polling_frequency: PT1M
+          authentication:
+            basic:
+              username: "${{aws_secrets:rss-credentials:username}}"
+              password: "${{aws_secrets:rss-credentials:password}}"
+  sink:
+    - opensearch:
+        hosts: ["https://opensearch:9200"]
+        index: "rss-${/feed_name}-%{yyyy.MM.dd}"
+        document_id: "${/item_id}"
+```
+
+The source reports `itemsIngested.<feed-name>` and `feedPollsFailed.<feed-name>` metrics for each feed, so you can track ingestion and alert on a failing feed individually. The seen-item cache holds the 10,000 most recent items per feed in memory and resets when Data Prepper restarts, so using `item_id` as the `document_id`, as in the preceding example, keeps re-ingested items from creating duplicate documents. For the full list of options, see the [RSS source documentation](https://docs.opensearch.org/latest/data-prepper/pipelines/configuration/sources/rss/).
+
 ## JDBC source coordination store
 
 Several Data Prepper sources, including OpenSearch, Amazon S3 scan, and Apache Iceberg, scale beyond a single node only when they can share a source coordination store that assigns work to each node and prevents duplicate processing. Until now, this store has been backed by DynamoDB.
