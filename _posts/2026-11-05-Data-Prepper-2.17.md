@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 'Data Prepper 2.17: TODO'
+title: 'Data Prepper 2.17 brings Splunk HEC compatibility and JDBC source coordination'
 authors:
   - srikanthpadakanti
   - dvenable
@@ -8,12 +8,14 @@ authors:
 date: 2026-11-05
 categories:
   - releases
-excerpt: TODO
-meta_keywords: TODO
-meta_description: TODO
+excerpt: Data Prepper 2.17 adds a Splunk HEC-compatible source, a rewritten RSS source supporting multiple feeds, and multi-node scaling backed by your relational database.
+meta_keywords: OpenSearch Data Prepper, Splunk HEC, Splunk migration, HTTP Event Collector, RSS source, Atom feeds, JDBC source coordination, PostgreSQL, MySQL, gRPC keepalive, OpenTelemetry, data pipeline
+meta_description: OpenSearch Data Prepper 2.17 adds a Splunk HEC-compatible source for ingesting from existing Splunk forwarders, a rewritten RSS source, JDBC-backed source coordination, and gRPC connection age settings for OpenTelemetry sources.
 ---
 
 The OpenSearch Data Prepper maintainers are happy to announce the release of Data Prepper 2.17.
+With this release, existing Splunk forwarders and HTTP Event Collector (HEC) clients can send data to Data Prepper without modification, making it easier to bring Splunk-originated data into OpenSearch.
+This release also rewrites the RSS source to reliably ingest multiple RSS and Atom feeds, adds a JDBC-backed source coordination store so you can scale Data Prepper to multiple nodes using a relational database you already run, and improves load balancing for OpenTelemetry sources in horizontally scaled deployments.
 
 
 ## Splunk HEC source
@@ -138,24 +140,19 @@ otel-pipeline:
 
 This release includes the following additional improvements:
 
-TODO: dlvenable
-
-* `parse_json` on arrays
-* Kafka with `azure_federated`
-* Prometheus sink improvements
-* 64 MB string length in events
-* Group level rate limiting
-* Expression language improvement for length()
-* The `otel_trace_group` processor has a new `indices` option, so you can look up trace groups in custom span indexes, aliases, or index patterns instead of only the default `otel-v1-apm-span` alias ([#6936](https://github.com/opensearch-project/data-prepper/issues/6936)).
-* Experimental OpenSearch pull-based ingestion now routes documents to the same partition as the OpenSearch shard they belong to. The Murmur3 hash now matches OpenSearch shard routing, including indexes that set `number_of_routing_shards` ([#6993](https://github.com/opensearch-project/data-prepper/issues/6993)).
+* Data Prepper now supports Amazon OpenSearch domains optimized for observability with a new `trace-analytics-plain-raw-v2` index type in the `opensearch` sink.
+* The `parse_json` and `parse_ion` processors can now parse top-level JSON arrays, writing the parsed array to the target key ([#5705](https://github.com/opensearch-project/data-prepper/issues/5705)).
+* Events now support string values up to 64 MB, up from the previous 20 MB limit, so you can ingest documents with very large individual fields ([#7145](https://github.com/opensearch-project/data-prepper/issues/7145)).
+* The Kafka source supports `azure_federated` OAuth authentication for Azure Event Hubs ([#7011](https://github.com/opensearch-project/data-prepper/pull/7011)).
+* The `length()` expression function now works on maps, lists, and arrays in addition to strings ([#7030](https://github.com/opensearch-project/data-prepper/issues/7030)).
+* The Prometheus sink can attach a per-instance `instance_label` to outgoing samples, enabling multiple Data Prepper nodes write the same series safely ([#7023](https://github.com/opensearch-project/data-prepper/issues/7023)).
+* Data Prepper has a new opt-in plugin framework backed by an embedded Apache Felix OSGi runtime, enabled with `-Ddata-prepper.plugin.framework=osgi`; the default classpath loader is unchanged ([#6760](https://github.com/opensearch-project/data-prepper/issues/6760)).
 
 ## Getting started
 
-Use the following resources to get started with Data Prepper 2.16:
+Use the following resources to get started with Data Prepper 2.17:
 
-TODO
-
-* To learn about all the changes, see the [2.16.0 release notes](https://github.com/opensearch-project/data-prepper/releases/tag/2.16.0).
+* To learn about all the changes, see the [2.17.0 release notes](https://github.com/opensearch-project/data-prepper/releases/tag/2.17.0).
 * To download Data Prepper, visit the [Download & Get Started](https://opensearch.org/downloads.html) page.
 * For information about getting started with Data Prepper, see [Getting started with OpenSearch Data Prepper](https://opensearch.org/docs/latest/data-prepper/getting-started/).
 * To learn more about upcoming work for Data Prepper, see the [Data Prepper Project Roadmap](https://github.com/orgs/opensearch-project/projects/221).
