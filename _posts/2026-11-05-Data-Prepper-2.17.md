@@ -3,8 +3,9 @@ layout: post
 title: 'Data Prepper 2.17 brings Splunk HEC compatibility and JDBC source coordination'
 authors:
   - srikanthpadakanti
-  - dvenable
+  - tonypiazza
   - hsotaro
+  - dvenable
 date: 2026-11-05
 categories:
   - releases
